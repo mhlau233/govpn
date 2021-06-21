@@ -4,7 +4,7 @@ a simple implementation of vpn in 250 lines of code.
 
 ## Installation
 
-govpn requires waterto setup tun interface.
+govpn requires water to setup tun interface.
 
 ```bash
 git clone https://github.com/dllexport/govpn
@@ -23,9 +23,9 @@ govpn server runs on linux and client runs on macos, change the setup shell scri
   -k string
         encryption key (default "abcdefgqywuwyw")
   -m string
-        run mode
+        run mode (server || client)
   -se string
-        server endpoint
+        server endpoint (x.x.x.x:x)
   -sip string
         server tun ip (default "10.0.0.1")
 ```
