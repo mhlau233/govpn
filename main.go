@@ -5,7 +5,6 @@ import (
 	"net"
 )
 
-// for client
 var Mode string
 var ServerTunIP string
 var ClientTunIP string
