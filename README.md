@@ -1,6 +1,6 @@
 # govpn
 
-a simple implementation of vpn in 250 lines of code.
+a simple implementation of vpn
 
 ## Installation
 
@@ -23,9 +23,11 @@ govpn server runs on linux and client runs on macos, change the setup shell scri
   -k string
         encryption key (default "abcdefgqywuwyw")
   -m string
-        run mode (server || client)
+        run mode
+  -p string
+        connection protocol (default "udp")
   -se string
-        server endpoint (x.x.x.x:x)
+        server endpoint
   -sip string
         server tun ip (default "10.0.0.1")
 ```

@@ -52,6 +52,11 @@ func parseFlags() {
 		os.Exit(-1)
 	}
 
+	if ProtocolType != "udp" && ProtocolType != "tcp" {
+		fmt.Println("-p must be udp or tcp")
+		os.Exit(-1)
+	}
+
 	var err error
 	ServerAddr, err = net.ResolveUDPAddr("udp", ServerEndpoint)
 	if err != nil {
