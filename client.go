@@ -8,6 +8,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"runtime"
 	"sync"
 	"time"
 
@@ -125,10 +126,17 @@ func RunClient() {
 		log.Fatal(err)
 	}
 
-	System(fmt.Sprintf("ifconfig %s %s %s up", tun.Name(), ClientTunIP, ServerTunIP))
-	// tun mtu must be 1500-20-8-(12+16)
-	// data read from tun must <= 1500 - IPLen - UDPHeaderlen - EncapsulationLen
-	System(fmt.Sprintf("ifconfig %s mtu %d", tun.Name(), 1500-20-8-2-12-16))
+	switch runtime.GOOS {
+	case "darwin":
+		System(fmt.Sprintf("ifconfig %s %s %s up", tun.Name(), ClientTunIP, ServerTunIP))
+		// tun mtu must be 1500-20-8-(12+16)
+		// data read from tun must <= 1500 - IPLen - UDPHeaderlen - EncapsulationLen
+		System(fmt.Sprintf("ifconfig %s mtu %d", tun.Name(), 1500-20-8-2-12-16))
+	case "linux":
+		System(fmt.Sprintf("ip link set dev %s up", tun.Name()))
+		System(fmt.Sprintf("ip addr add %s peer %s dev %s", ClientTunIP, ServerTunIP, tun.Name()))
+		System(fmt.Sprintf("ifconfig %s mtu %d", tun.Name(), 1500-20-8-2-12-16))
+	}
 
 	log.Printf("TUN Interface UP, Name: %s\n", tun.Name())
 
@@ -173,5 +181,6 @@ func runTCP() {
 		go remoteToLocalC(tcpConn, ctx, cancel, &wg)
 		go localToRemoteC(tcpConn, ctx, cancel, &wg)
 		wg.Wait()
+		log.Println("conn failed, reconnecting")
 	}
 }

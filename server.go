@@ -46,7 +46,8 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 			{
 				_, err = c.WriteToUDP(packet[0:2+12+n+16], clientAddr)
 				if err != nil {
-					continue
+					cancel()
+					return
 				}
 			}
 		case *net.TCPConn:
@@ -54,6 +55,7 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 				binary.BigEndian.PutUint16(packet[0:2], uint16(12+n+16))
 				_, err := c.Write(packet[0 : 2+12+n+16])
 				if err != nil {
+					c.Close()
 					cancel()
 					return
 				}
@@ -71,15 +73,15 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 	packet := make([]byte, 1500-20-8)
 	packetHeader := make([]byte, 2)
 	for {
-		if ctx.Err() != nil {
-			return
-		}
 		var n int
 		var err error
 		var peerAddr *net.UDPAddr
 		switch c := conn.(type) {
 		case *net.UDPConn:
 			{
+				if ctx.Err() != nil {
+					return
+				}
 				n, peerAddr, err = c.ReadFromUDP(packet)
 				if err != nil {
 					log.Println(err)
@@ -88,22 +90,29 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 			}
 		case *net.TCPConn:
 			{
+				if ctx.Err() != nil {
+					c.Close()
+					return
+				}
 				// read header first
 				_, err := io.ReadFull(c, packetHeader)
 				if err != nil {
 					log.Println(err)
+					c.Close()
 					cancel()
 					return
 				}
 				len := binary.BigEndian.Uint16(packetHeader)
 				if len > 1500-20-8-2 {
 					log.Printf("len:%d > 1500-20-8-2", len)
+					c.Close()
 					cancel()
 					return
 				}
 				_, err = io.ReadFull(c, packet[2:2+len])
 				if err != nil {
 					log.Println(err)
+					c.Close()
 					cancel()
 					return
 				}
@@ -129,7 +138,7 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 			}
 			CurrentContext = ctx
 			currentContextCancel = cancel
-			log.Printf("localToRemoteS with %v %v", waitGroup, conn)
+			// log.Printf("localToRemoteS with %v %v", waitGroup, conn)
 			go localToRemoteS(conn, ctx, cancel, waitGroup)
 		}
 		mutex.Unlock()
