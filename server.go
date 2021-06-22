@@ -22,10 +22,8 @@ var currentContextCancel context.CancelFunc
 
 func localToRemoteS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
 	waitGroup.Add(1)
-	defer func() {
-		log.Printf("localToRemoteS wg die %v %v", waitGroup, conn)
-		waitGroup.Done()
-	}()
+	defer waitGroup.Done()
+
 	packet := make([]byte, 1500-20-8)
 	for {
 		if ctx.Err() != nil {
@@ -66,10 +64,8 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 
 func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
 	waitGroup.Add(1)
-	defer func() {
-		log.Printf("remoteToLocalS wg die %v %v", waitGroup, conn)
-		waitGroup.Done()
-	}()
+	defer waitGroup.Done()
+
 	packet := make([]byte, 1500-20-8)
 	packetHeader := make([]byte, 2)
 	for {
