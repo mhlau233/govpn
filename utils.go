@@ -28,6 +28,7 @@ func parseFlags() {
 	flag.StringVar(&ClientTunIP, "cip", "10.0.0.100", "client tun ip")
 	flag.StringVar(&ServerTunIP, "sip", "10.0.0.1", "server tun ip")
 	flag.StringVar(&EncryptionKey, "k", "abcdefgqywuwyw", "encryption key")
+	flag.StringVar(&ProtocolType, "p", "udp", "connection protocol")
 
 	flag.Parse()
 

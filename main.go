@@ -6,6 +6,7 @@ import (
 )
 
 var Mode string
+var ProtocolType string
 var ServerTunIP string
 var ClientTunIP string
 var EncryptionKey string
