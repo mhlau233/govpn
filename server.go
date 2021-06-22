@@ -9,16 +9,19 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"sync"
 
 	"github.com/songgao/water"
 )
 
 var clientAddr *net.UDPAddr
 
+var mutex sync.Mutex
 var CurrentContext context.Context
 var currentContextCancel context.CancelFunc
 
-func localToRemoteS(conn interface{}, ctx context.Context, cancel context.CancelFunc) {
+func localToRemoteS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
 	packet := make([]byte, 1500-20-8)
 	for {
 		if ctx.Err() != nil {
@@ -55,8 +58,8 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 	}
 }
 
-func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.CancelFunc) {
-
+func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
 	packet := make([]byte, 1500-20-8)
 	packetHeader := make([]byte, 2)
 	for {
@@ -106,14 +109,16 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 			continue
 		}
 
+		mutex.Lock()
 		if CurrentContext != ctx {
 			if currentContextCancel != nil {
 				currentContextCancel()
 			}
 			CurrentContext = ctx
 			currentContextCancel = cancel
-			go localToRemoteS(conn, ctx, cancel)
+			go localToRemoteS(conn, ctx, cancel, waitGroup)
 		}
+		mutex.Unlock()
 
 		clientAddr = peerAddr
 
@@ -143,11 +148,9 @@ func RunServer() {
 
 	log.Printf("TUN Interface UP, Name: %s\n", tun.Name())
 
-	if ProtocolType == "udp" {
-		go acceptFromRemoteUDP()
-	} else {
-		go acceptFromRemoteTCP()
-	}
+	go acceptFromRemoteUDP()
+	go acceptFromRemoteTCP()
+
 	select {}
 }
 
@@ -163,8 +166,10 @@ func acceptFromRemoteTCP() {
 			fmt.Println(err)
 			continue
 		}
+		var wg sync.WaitGroup
+		wg.Add(2)
 		ctx, cancel := context.WithCancel(context.Background())
-		go remoteToLocalS(tcpConn, ctx, cancel)
+		go remoteToLocalS(tcpConn, ctx, cancel, &wg)
 	}
 }
 
@@ -173,6 +178,11 @@ func acceptFromRemoteUDP() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	go remoteToLocalS(udpConn, ctx, cancel)
+	for {
+		var wg sync.WaitGroup
+		wg.Add(2)
+		ctx, cancel := context.WithCancel(context.Background())
+		go remoteToLocalS(udpConn, ctx, cancel, &wg)
+		wg.Wait()
+	}
 }
