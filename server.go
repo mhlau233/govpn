@@ -21,7 +21,11 @@ var CurrentContext context.Context
 var currentContextCancel context.CancelFunc
 
 func localToRemoteS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
-	defer waitGroup.Done()
+	waitGroup.Add(1)
+	defer func() {
+		log.Printf("localToRemoteS wg die %v %v", waitGroup, conn)
+		waitGroup.Done()
+	}()
 	packet := make([]byte, 1500-20-8)
 	for {
 		if ctx.Err() != nil {
@@ -59,7 +63,11 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 }
 
 func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.CancelFunc, waitGroup *sync.WaitGroup) {
-	defer waitGroup.Done()
+	waitGroup.Add(1)
+	defer func() {
+		log.Printf("remoteToLocalS wg die %v %v", waitGroup, conn)
+		waitGroup.Done()
+	}()
 	packet := make([]byte, 1500-20-8)
 	packetHeader := make([]byte, 2)
 	for {
@@ -88,6 +96,11 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 					return
 				}
 				len := binary.BigEndian.Uint16(packetHeader)
+				if len > 1500-20-8-2 {
+					log.Printf("len:%d > 1500-20-8-2", len)
+					cancel()
+					return
+				}
 				_, err = io.ReadFull(c, packet[2:2+len])
 				if err != nil {
 					log.Println(err)
@@ -116,6 +129,7 @@ func remoteToLocalS(conn interface{}, ctx context.Context, cancel context.Cancel
 			}
 			CurrentContext = ctx
 			currentContextCancel = cancel
+			log.Printf("localToRemoteS with %v %v", waitGroup, conn)
 			go localToRemoteS(conn, ctx, cancel, waitGroup)
 		}
 		mutex.Unlock()
@@ -166,10 +180,12 @@ func acceptFromRemoteTCP() {
 			fmt.Println(err)
 			continue
 		}
-		var wg sync.WaitGroup
-		wg.Add(2)
-		ctx, cancel := context.WithCancel(context.Background())
-		go remoteToLocalS(tcpConn, ctx, cancel, &wg)
+		go func() {
+			var wg sync.WaitGroup
+			ctx, cancel := context.WithCancel(context.Background())
+			go remoteToLocalS(tcpConn, ctx, cancel, &wg)
+			wg.Wait()
+		}()
 	}
 }
 
@@ -180,7 +196,6 @@ func acceptFromRemoteUDP() {
 	}
 	for {
 		var wg sync.WaitGroup
-		wg.Add(2)
 		ctx, cancel := context.WithCancel(context.Background())
 		go remoteToLocalS(udpConn, ctx, cancel, &wg)
 		wg.Wait()
