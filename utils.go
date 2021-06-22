@@ -59,5 +59,5 @@ func parseFlags() {
 	}
 
 	fmt.Printf("sip: %s cip: %s\n", ServerTunIP, ClientTunIP)
-	fmt.Printf("server endpoint: %s:%d\n", ServerAddr.IP.String(), ServerAddr.Port)
+	fmt.Printf("server endpoint: %s\n", ServerAddr.String())
 }

@@ -10,7 +10,7 @@ var ServerTunIP string
 var ClientTunIP string
 var EncryptionKey string
 
-var ServerAddr *net.UDPAddr
+var ServerAddr net.Addr
 
 func main() {
 	parseFlags()
