@@ -1,3 +1,5 @@
+// +build linux
+
 package main
 
 import (
@@ -154,7 +156,7 @@ func RunServer() {
 	config := water.Config{
 		DeviceType: water.TUN,
 	}
-	config.Name = "dsvpn"
+	config.Name = "govpn"
 	tun, err = water.New(config)
 
 	if err != nil {

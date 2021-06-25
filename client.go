@@ -41,7 +41,7 @@ func localToRemoteC(conn interface{}, ctx context.Context, cancel context.Cancel
 		case *net.UDPConn:
 			{
 				// 16 bytes tag will be added at the tail after encryption
-				n, err = c.Write(packet[0 : 2+12+n+16])
+				_, err = c.Write(packet[0 : 2+12+n+16])
 				if err != nil {
 					log.Println(err)
 					continue
@@ -108,7 +108,7 @@ func remoteToLocalC(conn interface{}, ctx context.Context, cancel context.Cancel
 		decrypt(packet[2+12:n], []byte(EncryptionKey), packet[2:2+12])
 
 		// 16 bytes tag must be trimmed before injecting into tun
-		n, err = tun.Write(packet[2+12 : n-16])
+		_, err = tun.Write(packet[2+12 : n-16])
 		if err != nil {
 			log.Println(err)
 			continue
@@ -118,9 +118,16 @@ func remoteToLocalC(conn interface{}, ctx context.Context, cancel context.Cancel
 
 func RunClient() {
 	var err error
-	tun, err = water.New(water.Config{
+	config := water.Config{
 		DeviceType: water.TUN,
-	})
+	}
+	if runtime.GOOS == "windows" {
+		config.PlatformSpecificParams = water.PlatformSpecificParams{
+			ComponentID: "TAP0901",
+			Network:     "10.0.0.100/32",
+		}
+	}
+	tun, err = water.New(config)
 
 	if err != nil {
 		log.Fatal(err)
@@ -136,6 +143,9 @@ func RunClient() {
 		System(fmt.Sprintf("ip link set dev %s up", tun.Name()))
 		System(fmt.Sprintf("ip addr add %s peer %s dev %s", ClientTunIP, ServerTunIP, tun.Name()))
 		System(fmt.Sprintf("ifconfig %s mtu %d", tun.Name(), 1500-20-8-2-12-16))
+	case "windows":
+		System(fmt.Sprintf("netsh interface ip set address name=\"%s\" static %s 255.255.255.0 %s metric=automatic", tun.Name(), ClientTunIP, ServerTunIP))
+		System(fmt.Sprintf("netsh interface ipv4 set subinterface \"%s\" mtu=%d", tun.Name(), 1500-20-8-2-12-16))
 	}
 
 	log.Printf("TUN Interface UP, Name: %s\n", tun.Name())
@@ -151,7 +161,7 @@ func RunClient() {
 func runUDP() {
 	udpConn, err := net.DialUDP("udp", nil, ServerAddr.(*net.UDPAddr))
 	if err != nil {
-		log.Fatal("failed to dialup udp")
+		log.Fatalf("failed to dialup udp, %s", err)
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
