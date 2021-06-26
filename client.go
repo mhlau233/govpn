@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/songgao/water"
+	"golang.org/x/net/ipv4"
 )
 
 var tun *water.Interface
@@ -29,6 +30,11 @@ func localToRemoteC(conn interface{}, ctx context.Context, cancel context.Cancel
 		n, err := tun.Read(packet[2+12:])
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		_, err = ipv4.ParseHeader(packet[2+12 : 2+12+n])
+		if err != nil {
+			continue
 		}
 
 		// wrap into protocol

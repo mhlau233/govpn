@@ -37,6 +37,11 @@ func localToRemoteS(conn interface{}, ctx context.Context, cancel context.Cancel
 			os.Exit(-1)
 		}
 
+		_, err = ipv4.ParseHeader(packet[2+12 : 2+12+n])
+		if err != nil {
+			continue
+		}
+
 		rand.Read(packet[2 : 2+12])
 
 		encrypt(packet[2+12:2+12+n], []byte(EncryptionKey), packet[2:2+12])
