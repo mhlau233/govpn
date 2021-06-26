@@ -16,3 +16,14 @@ func System(c string) {
 		log.Fatalf("tun device up failed with %s\n", err)
 	}
 }
+
+func InitTun() (*water.Interface, error) {
+	config := water.Config{
+		DeviceType: water.TUN,
+	}
+	config.PlatformSpecificParams = water.PlatformSpecificParams{
+		ComponentID: "TAP0901",
+		Network:     "10.0.0.100/32",
+	}
+	return water.New(config)
+}

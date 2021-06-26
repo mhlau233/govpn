@@ -118,16 +118,7 @@ func remoteToLocalC(conn interface{}, ctx context.Context, cancel context.Cancel
 
 func RunClient() {
 	var err error
-	config := water.Config{
-		DeviceType: water.TUN,
-	}
-	if runtime.GOOS == "windows" {
-		config.PlatformSpecificParams = water.PlatformSpecificParams{
-			ComponentID: "TAP0901",
-			Network:     "10.0.0.100/32",
-		}
-	}
-	tun, err = water.New(config)
+	tun, err = InitTun()
 
 	if err != nil {
 		log.Fatal(err)
