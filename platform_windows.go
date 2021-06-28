@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log"
 	"os/exec"
+
+	"github.com/songgao/water"
 )
 
 func System(c string) {
 	cmd := exec.Command("cmd", "/c", c)
-	str, err := cmd.CombinedOutput()
+	_, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Println(string(str))
 		log.Fatalf("tun device up failed with %s\n", err)
 	}
 }
@@ -23,7 +24,7 @@ func InitTun() (*water.Interface, error) {
 	}
 	config.PlatformSpecificParams = water.PlatformSpecificParams{
 		ComponentID: "TAP0901",
-		Network:     "10.0.0.100/32",
+		Network:     fmt.Sprintf("%s/24", ClientTunIP),
 	}
 	return water.New(config)
 }

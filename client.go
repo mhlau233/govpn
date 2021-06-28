@@ -32,8 +32,13 @@ func localToRemoteC(conn interface{}, ctx context.Context, cancel context.Cancel
 			log.Fatal(err)
 		}
 
-		_, err = ipv4.ParseHeader(packet[2+12 : 2+12+n])
+		hdr, err := ipv4.ParseHeader(packet[2+12 : 2+12+n])
 		if err != nil {
+			continue
+		}
+
+		// if not ICMP, TCP, UDP
+		if hdr.Protocol != 0x01 && hdr.Protocol != 0x06 && hdr.Protocol != 0x11 {
 			continue
 		}
 
@@ -141,8 +146,9 @@ func RunClient() {
 		System(fmt.Sprintf("ip addr add %s peer %s dev %s", ClientTunIP, ServerTunIP, tun.Name()))
 		System(fmt.Sprintf("ifconfig %s mtu %d", tun.Name(), 1500-20-8-2-12-16))
 	case "windows":
-		System(fmt.Sprintf("netsh interface ip set address name=\"%s\" static %s 255.255.255.0 %s metric=automatic", tun.Name(), ClientTunIP, ServerTunIP))
+		System(fmt.Sprintf("netsh interface ip set address name=\"%s\" static %s 255.255.255.0 %s", tun.Name(), ClientTunIP, ServerTunIP))
 		System(fmt.Sprintf("netsh interface ipv4 set subinterface \"%s\" mtu=%d", tun.Name(), 1500-20-8-2-12-16))
+		System(fmt.Sprintf("netsh interface ipv4 set interface \"%s\" metric=1024", tun.Name()))
 	}
 
 	log.Printf("TUN Interface UP, Name: %s\n", tun.Name())
