@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"github.com/songgao/water"
+	"golang.org/x/net/ipv4"
 )
 
 var clientAddr *net.UDPAddr
